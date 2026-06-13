@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>HAnki by SHERLOCK HANNE</title>
+    <style>
+        /**
+        * 全局盒模型重置
+        * 作用：统一所有元素的尺寸计算方式，消除浏览器默认外边距/内边距差异
+        * 详细说明：
+        * - box-sizing: border-box → 元素的 width/height 包含 padding 和 border，
+        *   避免布局时频繁计算额外尺寸，使响应式布局更可控
+        * - margin: 0 → 移除所有元素默认外边距（如 body、h1-h6、p 等自带边距）
+        * - padding: 0 → 移除所有元素默认内边距（如 ul、ol 等自带左侧缩进）
+        * 这是现代 CSS 重置的常见写法，确保布局起始状态完全一致
+        */
+        * {
+            box-sizing: border-box;  /* 宽高计算包含边框和内边距 */
+            margin: 0;               /* 清除所有外边距 */
+            padding: 0;              /* 清除所有内边距 */
+        }
+
+        /* 页面基础 & 暗黑模式完整变量定义（丝滑切换无提示）*/
+        :root {
+            --bg-body: #eef2ff;
+            --bg-panel: white;
+            --panel-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+            --panel-hover-shadow: 0 20px 35px rgba(0, 0, 0, 0.12);
+            --header-bg: #1e293b;
+            --header-text: white;
+            --editor-bg: #fefce8;
+            --editor-border: #e2e8f0;
+            --preview-bg: #faf9fe;
+            --preview-card-bg: #ffffff;
+            --preview-text: #0f172a;
+            --info-bar-bg: #f1f5f9;
+            --progress-track: #e2e8f0;
+            --redact-bg: #0f172a;
+            --redact-revealed-color: #1100ffc8;
+            --redact-revealed-hover: #f1f5f9;
+            --footer-color: #5b6e8c;
+            --badge-bg: linear-gradient(115deg, #9f1239, #e11d48);
+            --badge-hover-bg: linear-gradient(115deg, #be123c, #f43f5e);
+            --btn-secondary-bg: linear-gradient(105deg, #3b82f6 0%, #6366f1 100%);
+            --btn-secondary-hover: linear-gradient(105deg, #2563eb 0%, #4f46e5 100%);
+            --btn-text: #1e293b;
+            --btn-border: rgba(203, 213, 225, 0.6);
+            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        /* 暗黑模式专属变量 ———— 点击 HAnki 标题即可丝滑切换，无任何提示/动效 */
+        body.dark-mode {
+            --bg-body: #0b1120;
+            /*          */
+            --bg-panel: #111827;
+            --panel-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+            --panel-hover-shadow: 0 20px 35px rgba(0, 0, 0, 0.8);
+            /*          */
+            --header-bg: #0a0f1c;
+            --header-text: #e2e8f0;
+            --editor-bg: #1e293b;
+            --editor-border: #334155;
+            /*          */
+            --preview-bg: #111827;
+            --preview-card-bg: #1e293b;
+            --preview-text: #e2e8f0;
+            --info-bar-bg: #1e293b;
+            --progress-track: #2d3a4e;
+            /*          */
+            --redact-bg: #111827;
+            --redact-revealed-color: #7aa2f7;
+            --redact-revealed-hover: #334155;
+            --footer-color: #6c86a3;
+            --badge-bg: linear-gradient(115deg, #831843, #be123c);
+            --badge-hover-bg: linear-gradient(115deg, #9d174d, #e11d48);
+            --btn-secondary-bg: linear-gradient(105deg, #2563eb 0%, #4f46e5 100%);
+            --btn-secondary-hover: linear-gradient(105deg, #1d4ed8 0%, #4338ca 100%);
+            --btn-text: #e2e8f0;
+            --btn-border: #475569;
+        }
+
+        body {
+            font-family: system-ui, 'Segoe UI', 'Roboto', 'Noto Sans', sans-serif;
+            background: var(--bg-body);
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px 20px;
+            overflow-y: scroll;
+            scrollbar-width: none;
+            transition: background-color 0.25s ease, color 0.2s;
+        }
+
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 主容器：最大宽度1600px，居中显示 */
+        .app-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            transition: all 0.3s ease;
+        }
+
+        /**
+        * 左右分栏布局容器
+        * 作用：创建弹性布局容器，用于放置左侧编辑区和右侧预览区
+        * 详细说明：
+        * - display: flex → 将容器设为弹性盒子，子元素变为弹性项目
+        * - flex-wrap: wrap → 允许子元素换行。当屏幕宽度不足时，
+        *   左右两栏会自动换行为上下堆叠，保证移动端适配
+        * - gap: 24px → 子元素之间的间距为 24px（行间距和列间距统一设置），
+        *   替代传统的 margin 方案，更简洁且不会产生外边距合并问题
+        * 使用场景：作为 .editor-panel 和 .preview-panel 的父容器
+        */
+        .split-layout {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            transition: all 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+
+        /**
+        * 全屏模式专用类: 当 body 或父容器拥有 .fullscreen-preview-mode 时，左侧面板隐藏
+        * 并且右侧面板占据全部可用宽度，同时保留优雅过渡。
+        * 采用额外类 .fullscreen-mode-active 控制 .editor-panel 消失，同时让 .preview-panel 占满。
+        */
+        .fullscreen-mode-active .editor-panel {
+            display: none;
+        }
+
+        .fullscreen-mode-active .preview-panel {
+            flex: 1;
+            max-width: 100%;
+            transition: flex 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+
+        /* 当全屏激活时，调整外层容器使预览区更舒展 */
+        .fullscreen-mode-active .split-layout {
+            gap: 0;
+        }
+
+        /* 全屏模式下预览卡片内部可轻微提升质感 */
+        .fullscreen-mode-active .preview-card {
+            min-height: 380px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05), inset 0 0 0 1px #f1f5f9;
+        }
+        body.dark-mode .fullscreen-mode-active .preview-card {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), inset 0 0 0 1px #334155;
+        }
+
+        /**
+        * 左侧编辑区面板样式
+        */
+        .editor-panel {
+            flex: 1.0;
+            min-width: 280px;
+            background: var(--bg-panel);
+            border-radius: 28px;
+            box-shadow: var(--panel-shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: box-shadow 0.3s, opacity 0.3s, transform 0.3s, background 0.2s;
+        }
+
+        .editor-panel:hover {
+            box-shadow: var(--panel-hover-shadow);
+        }
+
+        /* 右侧预览面板 */
+        .preview-panel {
+            flex: 4.0;
+            min-width: 320px;
+            background: var(--bg-panel);
+            border-radius: 28px;
+            box-shadow: var(--panel-shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: flex 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1), box-shadow 0.2s, background 0.2s;
+        }
+
+        /* 面板头部 */
+        .panel-header {
+            background: var(--header-bg);
+            color: var(--header-text);
+            padding: 16px 24px;
+            text-align: center;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .panel-header p {
+            margin: 6px 0 0;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .editor-area {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .markup-textarea {
+            width: 100%;
+            flex: 1;
+            padding: 16px;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.95rem;
+            line-height: 1.55;
+            border: 2px solid var(--editor-border);
+            border-radius: 20px;
+            resize: none;
+            background: var(--editor-bg);
+            transition: 0.2s;
+            scrollbar-width: none;
+            color: var(--preview-text);
+        }
+
+        .markup-textarea::-webkit-scrollbar {
+            display: none;
+        }
+
+        .markup-textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 14px;
+            margin-top: 22px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .smart-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 22px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: none;
+            border-radius: 48px;
+            cursor: default;
+            transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            background: var(--bg-panel);
+            color: var(--btn-text);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+            overflow: hidden;
+            letter-spacing: 0.3px;
+            backdrop-filter: blur(2px);
+            border: 1px solid var(--btn-border);
+        }
+
+        .smart-btn svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.2s ease, filter 0.2s;
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.05));
+            stroke: currentColor;
+        }
+
+        .smart-btn:hover svg {
+            transform: translateY(-1px) scale(1.05);
+        }
+
+        .btn-secondary-smart {
+            background: var(--btn-secondary-bg);
+            color: white;
+            border: none;
+            box-shadow: 0 8px 18px -6px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary-smart:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px -8px rgba(59, 130, 246, 0.5);
+            background: var(--btn-secondary-hover);
+        }
+
+        .smart-btn:active {
+            transform: translateY(1px);
+            transition-duration: 0.08s;
+        }
+
+        /* 涟漪效果节点 */
+        .ripple-node {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 80%);
+            transform: translate(-50%, -50%) scale(0);
+            pointer-events: none;
+            animation: rippleMagic 0.6s linear forwards;
+        }
+
+        @keyframes rippleMagic {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 0.7;
+                transform: translate(-50%, -50%) scale(0);
+            }
+            100% {
+                width: 280px;
+                height: 280px;
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .preview-area {
+            padding: 24px;
+            background: var(--preview-bg);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            transition: background 0.2s;
+        }
+
+        .preview-card {
+            background: var(--preview-card-bg);
+            border-radius: 24px;
+            padding: 24px 28px;
+            font-size: 1.15rem;
+            line-height: 1.7;
+            color: var(--preview-text);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03), inset 0 0 0 1px #f1f5f9;
+            min-height: 380px;
+            transition: all 0.2s ease;
+            word-break: break-word;
+        }
+        body.dark-mode .preview-card {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0 0 1px #334155;
+        }
+
+        .redact-token {
+            background-color: var(--redact-bg);
+            color: transparent;
+            border-radius: 14px;
+            padding: 0 8px;
+            margin: 0 2px;
+            cursor: default;
+            display: inline-block;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            line-height: 1.4;
+        }
+
+        .redact-token.revealed {
+            background-color: transparent;
+            color: var(--redact-revealed-color);
+            text-decoration: underline;
+            text-decoration-style: wavy;
+            text-decoration-thickness: 2px;
+            text-underline-offset: 5px;
+            font-weight: 500;
+            box-shadow: none;
+        }
+
+        .redact-token:hover {
+            filter: brightness(0.94);
+            transform: scale(1.01);
+            background-color: #1e293b;
+        }
+        body.dark-mode .redact-token:hover {
+            background-color: #2d3a4e;
+        }
+
+        .redact-token.revealed:hover {
+            background-color: var(--redact-revealed-hover);
+            transform: scale(1.01);
+        }
+
+        .info-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            padding: 12px 18px;
+            background: var(--info-bar-bg);
+            border-radius: 60px;
+            gap: 16px;
+            transition: background 0.2s;
+        }
+
+        .progress-wrapper {
+            flex: 1;
+            min-width: 180px;
+            position: relative;
+        }
+
+        .progress-track {
+            background: var(--progress-track);
+            border-radius: 48px;
+            height: 44px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.02);
+            backdrop-filter: blur(1px);
+            border: 1px solid rgba(203, 213, 225, 0.5);
+            position: relative;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(105deg, #3b82f6 0%, #6366f1 100%);
+            border-radius: 48px;
+            transition: width 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.05);
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .progress-fill[data-width-small="true"] .progress-percent {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .progress-percent {
+            font-family: Optima;
+            font-weight: 700;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            margin-right: 10px;
+        }
+
+        /* 正在遮盖统计徽章 支持暗黑 */
+        .stats-badge {
+            font-family: system-ui, 'Segoe UI', sans-serif;
+            background: var(--badge-bg);
+            color: #f0f9ff;
+            padding: 8px 26px;
+            border-radius: 56px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(165, 180, 252, 0.5);
+            cursor: default;
+            user-select: none;
+            transition: transform 0.2s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.25s ease, background 0.2s;
+            position: relative;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .stats-badge:hover {
+            transform: translateY(-3px) scale(1.02);
+            background: var(--badge-hover-bg);
+            box-shadow: 0 14px 26px -6px rgba(46, 16, 101, 0.5);
+            border-color: rgba(196, 181, 253, 0.8);
+        }
+
+        .stats-badge:active {
+            transform: scale(0.96);
+            transition: transform 0.08s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .stats-badge .badge-ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,245,0.8) 0%, rgba(255,220,150,0.4) 80%);
+            transform: translate(-50%, -50%) scale(0);
+            pointer-events: none;
+            animation: badgeRippleFlash 0.55s ease-out forwards;
+        }
+
+        @keyframes badgeRippleFlash {
+            0% {
+                width: 0px;
+                height: 0px;
+                opacity: 0.8;
+                transform: translate(-50%, -50%) scale(0);
+            }
+            100% {
+                width: 320px;
+                height: 320px;
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 0.7rem;
+            color: var(--footer-color);
+            transition: color 0.2s;
+        }
+
+        @media (max-width: 800px) {
+            .preview-card { font-size: 1rem; padding: 18px; }
+            .smart-btn { padding: 7px 16px; font-size: 0.8rem; }
+            .smart-btn svg { width: 16px; height: 16px; }
+            .stats-badge { padding: 6px 18px; font-size: 0.75rem; gap: 6px; }
+            .progress-track { height: 38px; }
+            .info-bar { padding: 10px 14px; gap: 12px; }
+        }
+
+        html { overflow-y: scroll; scrollbar-width: none; -ms-overflow-style: none; }
+        html::-webkit-scrollbar { display: none; }
+        body { scrollbar-width: none; -ms-overflow-style: none; }
+        .app-container, .split-layout, .editor-panel, .preview-panel, .editor-area, .preview-area {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .app-container::-webkit-scrollbar, .split-layout::-webkit-scrollbar,
+        .editor-panel::-webkit-scrollbar, .preview-panel::-webkit-scrollbar,
+        .editor-area::-webkit-scrollbar, .preview-area::-webkit-scrollbar {
+            display: none;
+        }
+        .editor-panel, .preview-panel { will-change: flex, display; }
+
+        /* HAnki 标题彩蛋样式保留，无额外动效及提示, 确保点击区域 */
+        .hanki-title-trigger {
+            cursor: default;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container" id="appContainer">
+    <!-- 页面上方标题区域：渐变标题，点击 HAnki 文字切换暗黑模式（无任何提示动画）-->
+    <div style="text-align: center; margin: 0 0 32px 0; position: relative;">
+        <h1 id="darkModeToggler" style="font-size: 5rem; font-weight: 900; margin: 0; background: linear-gradient(135deg, #111827 0%, #7c3aed 30%, #06b6d4 50%, #7c3aed 70%, #111827 100%); background-size: 200% auto; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 10s ease infinite; letter-spacing: -0.02em; font-family: 'Inter', system-ui, 'Segoe UI', sans-serif; text-shadow: 0 2px 10px rgba(0,0,0,0.05); cursor: default;">HAnki</h1>
+        <div style="width: 120px; height: 3px; background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc); border-radius: 3px; margin: 16px auto 0; animation: expand 1.0s ease-out;"></div>
+        <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 200px; height: 200px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(99,102,241,0) 70%); border-radius: 50%; pointer-events: none; z-index: -1;"></div>
+    </div>
+
+    <style>
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes expand {
+            0% { width: 0; opacity: 0; }
+            100% { width: 120px; opacity: 1; }
+        }
+    </style>
+    
+    <div class="split-layout" id="splitLayout">
+        <div class="editor-panel" id="editorPanel">
+            <div class="panel-header">
+                <h2>原文编辑区</h2>
+                <p>[需要遮盖的词] 将显示为黑色方块</p>
+            </div>
+            <div class="editor-area">
+                <textarea id="markupInput" class="markup-textarea" spellcheck="false"></textarea>
+                <div class="button-group">
+                    <button id="resetAllRevealBtn" class="smart-btn btn-secondary-smart">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        <span>显示原文</span>
+                    </button>
+                    <button id="recoverAllRedactBtn" class="smart-btn btn-secondary-smart">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                        </svg>
+                        <span>重新遮盖</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-panel" id="previewPanel">
+            <div class="panel-header">
+                <h2>预览交互区</h2>
+                <p>点击遮盖块切换状态</p>
+            </div>
+            <div class="preview-area">
+                <div id="previewContainer" class="preview-card">
+                    <div style="color: #94a3b8; text-align: center;">✨ 等待解析标记内容...</div>
+                </div>
+                <div class="info-bar">
+                    <div class="progress-wrapper">
+                        <div class="progress-track">
+                            <div id="progressFill" class="progress-fill">
+                                <span id="progressPercentLabel" class="progress-percent">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stats-badge" id="statsInfo">
+                        <span> 正在遮盖 </span>
+                        <span id="statsCountDisplay">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        版权所有 · HAnki 由 SHERLOCK HANNE 原创开发 © 202606131621
+    </div>
+</div>
+
+<script>
+    // ===================== 核心工具函数 ======================
+    const appContainerDiv = document.getElementById('appContainer');
+    const statsBadgeElem = document.getElementById('statsInfo');
+    let isFullscreenPreview = false;
+
+    // 全屏切换 (复用原有逻辑)
+    function toggleFullscreenPreviewMode() {
+        if (!isFullscreenPreview) {
+            appContainerDiv.classList.add('fullscreen-mode-active');
+            isFullscreenPreview = true;
+            const previewPanel = document.getElementById('previewPanel');
+            if (previewPanel) {
+                previewPanel.style.transition = 'box-shadow 0.2s';
+                previewPanel.style.boxShadow = '0 20px 35px rgba(0, 0, 0, 0.12)';
+                setTimeout(() => { if(previewPanel) previewPanel.style.boxShadow = ''; }, 300);
+            }
+        } else {
+            appContainerDiv.classList.remove('fullscreen-mode-active');
+            isFullscreenPreview = false;
+            const previewPanel = document.getElementById('previewPanel');
+            if (previewPanel) previewPanel.style.boxShadow = '';
+        }
+        setTimeout(() => { updateStatsSilent(); }, 50);
+    }
+
+    // 暗黑模式切换 (彩蛋: 无任何提示、动效，仅直接添加/移除类)
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        // 确保暗黑模式下预览组件重绘样式无闪烁 (无额外提示)
+        // 强行刷新已渲染的遮盖块颜色变量（变量已全局生效，无需额外代码）
+        // 为了保证进度条内部文字对比，不做额外操作
+        updateStatsSilent(); // 维持统计重新校正显示，但无toast提示
+    }
+
+    // ========== 原有JavaScript逻辑 ==========
+    const markupInput = document.getElementById('markupInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const resetAllRevealBtn = document.getElementById('resetAllRevealBtn');
+    const recoverAllRedactBtn = document.getElementById('recoverAllRedactBtn');
+    const progressFillEl = document.getElementById('progressFill');
+    const progressPercentLabel = document.getElementById('progressPercentLabel');
+    const statsCountSpan = document.getElementById('statsCountDisplay');
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function parseMarkedTextToHtml(markedText) {
+        if (!markedText) return '';
+        let result = '';
+        let i = 0;
+        const len = markedText.length;
+        while (i < len) {
+            if (markedText[i] === '[') {
+                let j = i + 1;
+                let found = false;
+                while (j < len) {
+                    if (markedText[j] === ']') {
+                        found = true;
+                        break;
+                    }
+                    j++;
+                }
+                if (found) {
+                    const innerRaw = markedText.substring(i + 1, j);
+                    const escapedInner = escapeHtml(innerRaw);
+                    result += `<span class="redact-token" data-original="${escapedInner}">${escapedInner}</span>`;
+                    i = j + 1;
+                } else {
+                    result += escapeHtml(markedText[i]);
+                    i++;
+                }
+            } else {
+                let start = i;
+                while (i < len && markedText[i] !== '[') i++;
+                const plainChunk = markedText.substring(start, i);
+                result += escapeHtml(plainChunk);
+            }
+        }
+        return result;
+    }
+
+    function updateProgressBarVisual(percent) {
+        if (!progressFillEl) return;
+        progressFillEl.style.width = percent + '%';
+        if (percent === 0 || (percent > 0 && percent <= 8)) {
+            progressFillEl.setAttribute('data-width-small', 'true');
+            progressFillEl.style.paddingRight = '0';
+        } else {
+            progressFillEl.setAttribute('data-width-small', 'false');
+            progressFillEl.style.paddingRight = '';
+        }
+        if (progressPercentLabel) {
+            const roundedPercent = Math.round(percent);
+            progressPercentLabel.innerText = roundedPercent + '%';
+            if (percent === 0 || (percent > 0 && percent <= 8)) {
+                progressPercentLabel.style.opacity = '0';
+                progressPercentLabel.style.visibility = 'hidden';
+            } else {
+                progressPercentLabel.style.opacity = '1';
+                progressPercentLabel.style.visibility = 'visible';
+            }
+        }
+    }
+
+    function updateStatsWithAnimation() {
+        const allRedactSpans = document.querySelectorAll('#previewContainer .redact-token');
+        const total = allRedactSpans.length;
+        const revealedCount = Array.from(allRedactSpans).filter(span => span.classList.contains('revealed')).length;
+        const coveredCount = total - revealedCount;
+        if (statsCountSpan) statsCountSpan.innerText = coveredCount;
+        const percent = total === 0 ? 0 : (revealedCount / total) * 100;
+        updateProgressBarVisual(percent);
+        if (statsBadgeElem) {
+            statsBadgeElem.style.transform = 'scale(1.05)';
+            setTimeout(() => { if(statsBadgeElem) statsBadgeElem.style.transform = ''; }, 160);
+        }
+    }
+    
+    function updateStatsSilent() {
+        const allRedactSpans = document.querySelectorAll('#previewContainer .redact-token');
+        const total = allRedactSpans.length;
+        const revealedCount = Array.from(allRedactSpans).filter(span => span.classList.contains('revealed')).length;
+        const coveredCount = total - revealedCount;
+        if (statsCountSpan) statsCountSpan.innerText = coveredCount;
+        const percent = total === 0 ? 0 : (revealedCount / total) * 100;
+        updateProgressBarVisual(percent);
+    }
+
+    function bindRedactClickEvents() {
+        const redactSpans = document.querySelectorAll('#previewContainer .redact-token');
+        redactSpans.forEach(span => {
+            if (span._clickHandler) span.removeEventListener('click', span._clickHandler);
+            const clickHandler = function(e) {
+                e.stopPropagation();
+                this.style.transform = 'scale(0.96)';
+                setTimeout(() => { if (this) this.style.transform = ''; }, 130);
+                this.classList.toggle('revealed');
+                updateStatsWithAnimation();
+            };
+            span.addEventListener('click', clickHandler);
+            span._clickHandler = clickHandler;
+        });
+    }
+
+    function renderPreview() {
+        const rawMarkup = markupInput.value;
+        const htmlContent = parseMarkedTextToHtml(rawMarkup);
+        if (!htmlContent.trim()) {
+            // ✨ 新的使用说明界面（美观、信息完整）
+            previewContainer.innerHTML = `
+                <div style="color: var(--preview-text); text-align: left; padding: 1.5rem; max-width: 100%;">
+                    <div style="text-align: center; margin-bottom: 1.8rem;">
+                        <span style="font-size: 2.5rem;">✨ HAnki 使用指南 ✨</span>
+                    </div>
+                    <div style="background: var(--info-bar-bg); border-radius: 20px; padding: 1.2rem 1.8rem; margin-bottom: 1.5rem;">
+                        <h3 style="margin-bottom: 0.8rem;">1. 编辑原文</h3>
+                        <p>在左侧<strong>「原文编辑区」</strong>输入文字，使用 <code style="background: var(--editor-border); padding: 2px 8px; border-radius: 20px;">[需要遮盖的词]</code> 方括号语法来标记要遮盖的内容。</p>
+                    </div>
+                    <div style="background: var(--info-bar-bg); border-radius: 20px; padding: 1.2rem 1.8rem; margin-bottom: 1.5rem;">
+                        <h3 style="margin-bottom: 0.8rem;">2. 交互遮盖</h3>
+                        <p>右侧<strong>「预览交互区」</strong>会实时显示遮盖块。<strong>点击遮盖块</strong>即可切换遮盖状态。底部进度条和徽章会动态显示遮盖数量与回忆进度。</p>
+                    </div>
+                    <div style="background: var(--info-bar-bg); border-radius: 20px; padding: 1.2rem 1.8rem; margin-bottom: 1.5rem;">
+                        <h3 style="margin-bottom: 0.8rem;">3. 快捷键</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 8px;">
+                            <div><kbd style="background: var(--header-bg); color: white; padding: 4px 10px; border-radius: 30px;">Alt + Z</kbd> 全部显示</div>
+                            <div><kbd style="background: var(--header-bg); color: white; padding: 4px 10px; border-radius: 30px;">Alt + X</kbd> 全部遮盖</div>
+                            <div><kbd style="background: var(--header-bg); color: white; padding: 4px 10px; border-radius: 30px;">Alt + C</kbd> 全屏模式</div>
+                            <div><kbd style="background: var(--header-bg); color: white; padding: 4px 10px; border-radius: 30px;">Alt + V</kbd> 暗黑模式</div>
+                        </div>
+                    </div>
+                    <div style="background: var(--info-bar-bg); border-radius: 20px; padding: 1.2rem 1.8rem;">
+                        <h3 style="margin-bottom: 0.6rem;">4. 彩蛋</h3>
+                        <p>点击顶部 <strong>“HAnki”</strong> 标题可切换暗黑模式。<br>点击底部 <strong>“正在遮盖”</strong> 徽章可切换全屏模式。<br></p>
+                    </div>
+                </div>
+            `;
+            if (statsCountSpan) statsCountSpan.innerText = '0';
+            updateProgressBarVisual(0);
+            return;
+        }
+        previewContainer.innerHTML = htmlContent;
+        bindRedactClickEvents();
+        updateStatsSilent();
+    }
+
+    function resetAllToCovered() {
+        const allRedact = document.querySelectorAll('#previewContainer .redact-token');
+        if (allRedact.length === 0) return;
+        allRedact.forEach(span => span.classList.remove('revealed'));
+        previewContainer.style.transform = 'scale(0.99)';
+        setTimeout(() => { previewContainer.style.transform = ''; }, 150);
+        updateStatsWithAnimation();
+    }
+
+    function revealAllOriginal() {
+        const allRedact = document.querySelectorAll('#previewContainer .redact-token');
+        if (allRedact.length === 0) return;
+        allRedact.forEach(span => span.classList.add('revealed'));
+        previewContainer.style.transform = 'scale(0.99)';
+        setTimeout(() => { previewContainer.style.transform = ''; }, 150);
+        updateStatsWithAnimation();
+    }
+
+    function attachSmartRipple(buttonElement) {
+        if (!buttonElement || buttonElement._rippleAttached) return;
+        buttonElement._rippleAttached = true;
+        buttonElement.addEventListener('click', function(e) {
+            const rect = buttonElement.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple-node';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            ripple.style.position = 'absolute';
+            ripple.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+            ripple.style.borderRadius = '50%';
+            ripple.style.pointerEvents = 'none';
+            ripple.style.zIndex = '20';
+            buttonElement.style.position = 'relative';
+            buttonElement.style.overflow = 'hidden';
+            buttonElement.appendChild(ripple);
+            requestAnimationFrame(() => {
+                ripple.style.width = '260px';
+                ripple.style.height = '260px';
+                ripple.style.opacity = '0';
+            });
+            setTimeout(() => ripple.remove(), 600);
+        });
+    }
+
+    	// 初始化以及添加快捷键 (四个: 显示原文(Alt+Z), 重新遮盖(Alt+X), 切换全屏	(Alt+C), 暗黑模式(Alt+V))
+	function initKeyboardShortcuts() {
+    	window.addEventListener('keydown', (e) => {
+        	// 只响应 Alt 键（Windows 为 Alt，macOS 为 Option）
+        	if (!e.altKey) return;
+        
+        	// 阻止浏览器默认行为，避免冲突
+        	e.preventDefault();
+        
+        	const key = e.key.toLowerCase();
+        
+        	switch (key) {
+            	case 'z':  // Alt+Z → 全部显示（显示原文）
+                	revealAllOriginal();
+                	break;
+            	case 'x':  // Alt+X → 全部遮盖（重新遮盖）
+                	resetAllToCovered();
+                	break;
+           	case 'c':  // Alt+C → 切换全屏模式
+                	toggleFullscreenPreviewMode();
+                	break;
+            	case 'v':  // Alt+V → 暗黑模式切换
+                	toggleDarkMode();
+                	break;
+            	default:
+                	// 其他 Alt+字母 不做处理，恢复默认行为
+                	if (key !== 'z' && key !== 'x' && key !== 'c' && key !== 'v') {
+                    	e.preventDefault(); // 恢复可让浏览器处理非冲突按键？为避免过多阻拦，只放开无关键的默认
+                    	// 更好的做法：只对指定键阻止，其他放行。
+                	}
+                	break;
+        	}
+    	});
+	}
+
+    function attachBadgeClickEffects() {
+        if (!statsBadgeElem) return;
+        statsBadgeElem.addEventListener('click', function(e) {
+            const rect = statsBadgeElem.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const badgeRipple = document.createElement('span');
+            badgeRipple.className = 'badge-ripple';
+            badgeRipple.style.left = x + 'px';
+            badgeRipple.style.top = y + 'px';
+            badgeRipple.style.position = 'absolute';
+            badgeRipple.style.pointerEvents = 'none';
+            badgeRipple.style.zIndex = '15';
+            statsBadgeElem.style.position = 'relative';
+            statsBadgeElem.appendChild(badgeRipple);
+            setTimeout(() => badgeRipple.remove(), 550);
+        });
+    }
+
+    function init() {
+        const DEFAULT_MARKUP = `[夏洛克·福尔摩斯]是文学史上永不陨落的恒星。他那超凡的观察力与严密的[演绎法]，能从最细微的烟灰与脚印中洞穿真相。他冷峻外表下深藏着对[正义]的狂热，在贝克街的袅袅烟圈里编织出最华丽的智力盛宴。他是[智慧]的化身，更是无数读者心中[永远的唯一的侦探]。`;
+        markupInput.value = DEFAULT_MARKUP;
+        renderPreview();
+        resetAllRevealBtn.addEventListener('click', () => revealAllOriginal());
+        recoverAllRedactBtn.addEventListener('click', () => resetAllToCovered());
+        markupInput.addEventListener('input', () => {
+            if (window.debounceTimer) clearTimeout(window.debounceTimer);
+            window.debounceTimer = setTimeout(() => renderPreview(), 380);
+        });
+        markupInput.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); renderPreview(); } });
+        attachSmartRipple(resetAllRevealBtn);
+        attachSmartRipple(recoverAllRedactBtn);
+        if (statsBadgeElem) {
+            statsBadgeElem.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleFullscreenPreviewMode();
+            });
+            attachBadgeClickEffects();
+        }
+
+        // 暗黑模式彩蛋：点击 HAnki 标题直接切换 (无提示)
+        const titleH1 = document.getElementById('darkModeToggler');
+        if (titleH1) {
+            titleH1.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleDarkMode();
+            });
+        }
+        // 注册全局快捷键
+        initKeyboardShortcuts();
+    }
+    init();
+</script>
+</body>
+</html>
