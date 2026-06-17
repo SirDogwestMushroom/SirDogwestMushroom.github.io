@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>HAnki by SHERLOCK HANNE</title>
+    <style>
+        /**
+        * 全局盒模型重置
+        */
+        * {
+            box-sizing: border-box;  /* 宽高计算包含边框和内边距 */
+            margin: 0;               /* 清除所有外边距 */
+            padding: 0;              /* 清除所有内边距 */
+        }
+
+        /* 页面基础 & 暗黑模式完整变量定义（丝滑切换无提示）*/
+        :root {
+            --bg-body: #eef2ff;
+            --bg-panel: white;
+            --panel-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+            --panel-hover-shadow: 0 20px 35px rgba(0, 0, 0, 0.12);
+            --header-bg: #1e293b;
+            --header-text: white;
+            --editor-bg: #fefce8;
+            --editor-border: #e2e8f0;
+            --preview-bg: #faf9fe;
+            --preview-card-bg: #ffffff;
+            --preview-text: #0f172a;
+            --info-bar-bg: #f1f5f9;
+            --progress-track: #e2e8f0;
+            --redact-bg: #0f172a;
+            --redact-revealed-color: #1100ffc8;
+            --redact-revealed-hover: #f1f5f9;
+            --footer-color: #5b6e8c;
+            --badge-bg: linear-gradient(115deg, #9f1239, #e11d48);
+            --badge-hover-bg: linear-gradient(115deg, #be123c, #f43f5e);
+            --btn-secondary-bg: linear-gradient(105deg, #3b82f6 0%, #6366f1 100%);
+            --btn-secondary-hover: linear-gradient(105deg, #2563eb 0%, #4f46e5 100%);
+            --btn-text: #1e293b;
+            --btn-border: rgba(203, 213, 225, 0.6);
+            
+            /* 指南专用高阶色彩变量 */
+            --guide-accent-primary: #000000;
+            --guide-accent-secondary: #000000;
+            --guide-accent-success: #000000;
+            --guide-accent-warning: #000000;
+            --guide-card-bg: rgba(255, 255, 255, 0.5);
+            --guide-card-border: rgba(15, 23, 42, 0.08);
+            
+            /* 拟真键帽静态风格变量 */
+            --kbd-bg: rgba(255, 255, 255, 0.85);
+            --kbd-text: #4f46e5;
+            --kbd-shadow: 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 1px rgba(0, 0, 0, 0.04);
+            
+            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        /* 暗黑模式专属变量 ———— 点击 HAnki 标题即可丝滑切换 */
+        body.dark-mode {
+            --bg-body: #0b1120;
+            --bg-panel: #111827;
+            --panel-shadow: 0 12px 30px rgba(87, 87, 87, 0.4);
+            --panel-hover-shadow: 0 20px 30px rgba(87, 87, 87, 0.4);
+            --header-bg: #0a0f1c;
+            --header-text: #e2e8f0;
+            --editor-bg: #1e293b;
+            --editor-border: #334155;
+            --preview-bg: #111827;
+            --preview-card-bg: #1e293b;
+            --preview-text: #e2e8f0;
+            --info-bar-bg: #1e293b;
+            --progress-track: #2d3a4e;
+            --redact-bg: #111827;
+            --redact-revealed-color: #7aa2f7;
+            --redact-revealed-hover: #334155;
+            --footer-color: #6c86a3;
+            --badge-bg: linear-gradient(115deg, #831843, #be123c);
+            --badge-hover-bg: linear-gradient(115deg, #9d174d, #e11d48);
+            --btn-secondary-bg: linear-gradient(105deg, #2563eb 0%, #4f46e5 100%);
+            --btn-secondary-hover: linear-gradient(105deg, #1d4ed8 0%, #4338ca 100%);
+            --btn-text: #e2e8f0;
+            --btn-border: #475569;
+            
+            /* 暗黑模式指南变量 */
+            --guide-accent-primary: #ffffff;
+            --guide-accent-secondary: #ffffff;
+            --guide-accent-success: #ffffff;
+            --guide-accent-warning: #ffffff;
+            --guide-card-bg: rgba(30, 41, 59, 0.4);
+            --guide-card-border: rgba(255, 255, 255, 0.05);
+            
+            /* 暗黑拟真键帽风格变量 */
+            --kbd-bg: rgba(30, 41, 59, 0.8);
+            --kbd-text: #38bdf8;
+            --kbd-shadow: 0 0 8px rgba(56, 189, 248, 0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        body {
+            font-family: system-ui, 'Segoe UI', 'Roboto', 'Noto Sans', sans-serif;
+            background: var(--bg-body);
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px 20px;
+            overflow-y: scroll;
+            scrollbar-width: none;
+            transition: background-color 0.25s ease, color 0.2s;
+        }
+
+        body.english-mode .markup-textarea {
+            font-family: 'Georgia', 'Times New Roman', Times, serif;
+            font-size: 0.90rem;
+            letter-spacing: 0.01em;
+        }
+
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 主容器 */
+        .app-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            transition: all 0.3s ease;
+        }
+
+        .split-layout {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            transition: all 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+
+        .fullscreen-mode-active .editor-panel {
+            display: none;
+        }
+
+        .fullscreen-mode-active .preview-panel {
+            flex: 1;
+            max-width: 100%;
+            transition: flex 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+
+        .fullscreen-mode-active .split-layout {
+            gap: 0;
+        }
+
+        .fullscreen-mode-active .preview-card {
+            min-height: 380px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05), inset 0 0 0 1px #f1f5f9;
+        }
+        body.dark-mode .fullscreen-mode-active .preview-card {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), inset 0 0 0 1px #334155;
+        }
+
+        .editor-panel {
+            flex: 1.0;
+            min-width: 280px;
+            background: var(--bg-panel);
+            border-radius: 28px;
+            box-shadow: var(--panel-shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: box-shadow 0.3s, opacity 0.3s, transform 0.3s, background 0.2s;
+        }
+
+        .editor-panel:hover {
+            box-shadow: var(--panel-hover-shadow);
+        }
+
+        .preview-panel {
+            flex: 4.0;
+            min-width: 320px;
+            background: var(--bg-panel);
+            border-radius: 28px;
+            box-shadow: var(--panel-shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: flex 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1), box-shadow 0.2s, background 0.2s;
+        }
+
+        .panel-header {
+            background: var(--header-bg);
+            color: var(--header-text);
+            padding: 16px 24px;
+            text-align: center;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .panel-header p {
+            margin: 6px 0 0;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .editor-area {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .markup-textarea {
+            width: 100%;
+            flex: 1;
+            padding: 16px;
+            font-family: 'Georgia', 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 1rem;
+            line-height: 1.55;
+            border: 2px solid var(--editor-border);
+            border-radius: 20px;
+            resize: none;
+            background: var(--editor-bg);
+            transition: 0.2s;
+            scrollbar-width: none;
+            color: var(--preview-text);
+        }
+
+        .markup-textarea::-webkit-scrollbar {
+            display: none;
+        }
+
+        .markup-textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 14px;
+            margin-top: 22px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .smart-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 14px;
+            min-width: 125px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: none;
+            border-radius: 48px;
+            cursor: default;
+            transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            background: var(--bg-panel);
+            color: var(--btn-text);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+            overflow: hidden;
+            letter-spacing: 0.3px;
+            backdrop-filter: blur(2px);
+            border: 1px solid var(--btn-border);
+        }
+
+        .smart-btn svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.2s ease, filter 0.2s;
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.05));
+            stroke: currentColor;
+        }
+
+        body.english-mode .smart-btn svg {
+            display: none;
+        }
+
+        body.english-mode .smart-btn {
+            gap: 0;
+            padding: 10px 14px;
+            min-width: 125px;
+            justify-content: center;
+        }
+
+        .smart-btn:hover svg {
+            transform: translateY(-1px) scale(1.05);
+        }
+
+        .btn-secondary-smart {
+            background: var(--btn-secondary-bg);
+            color: white;
+            border: none;
+            box-shadow: 0 8px 18px -6px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary-smart:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px -8px rgba(59, 130, 246, 0.5);
+            background: var(--btn-secondary-hover);
+        }
+
+        .smart-btn:active {
+            transform: translateY(1px);
+            transition-duration: 0.08s;
+        }
+
+        .ripple-node {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 80%);
+            transform: translate(-50%, -50%) scale(0);
+            pointer-events: none;
+            animation: rippleMagic 0.6s linear forwards;
+        }
+
+        @keyframes rippleMagic {
+            0% { width: 0; height: 0; opacity: 0.7; transform: translate(-50%, -50%) scale(0); }
+            100% { width: 280px; height: 280px; opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .preview-area {
+            padding: 24px;
+            background: var(--preview-bg);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            transition: background 0.2s;
+        }
+
+        .preview-card {
+            background: var(--preview-card-bg);
+            border-radius: 24px;
+            padding: 24px 28px;
+            font-size: 1.15rem;
+            line-height: 1.7;
+            color: var(--preview-text);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03), inset 0 0 0 1px #f1f5f9;
+            min-height: 380px;
+            transition: all 0.2s ease;
+            word-break: break-word;
+        }
+        body.dark-mode .preview-card {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0 0 1px #334155;
+        }
+
+        /* 优化白名单与块：针对保留段落换行与空格进行适配 */
+        .preview-card p.hanki-para {
+            margin-bottom: 0.8em;
+            white-space: pre-wrap;
+        }
+        .preview-card p.hanki-para:last-child {
+            margin-bottom: 0;
+        }
+
+        .redact-token {
+            background-color: var(--redact-bg);
+            color: transparent;
+            border-radius: 14px;
+            padding: 0 8px;
+            margin: 0 2px;
+            cursor: default;
+            display: inline-block;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            line-height: 1.4;
+            white-space: initial; /* 确保盒子内不会因父级的pre-wrap产生错误继承行为 */
+        }
+
+        .redact-token.revealed {
+            background-color: transparent;
+            color: var(--redact-revealed-color);
+            text-decoration: underline;
+            text-decoration-style: wavy;
+            text-decoration-thickness: 2px;
+            text-underline-offset: 5px;
+            font-weight: 500;
+            box-shadow: none;
+        }
+
+        .redact-token:hover {
+            filter: brightness(0.94);
+            transform: scale(1.01);
+            background-color: #1e293b;
+        }
+        body.dark-mode .redact-token:hover {
+            background-color: #2d3a4e;
+        }
+
+        .redact-token.revealed:hover {
+            background-color: var(--redact-revealed-hover);
+            transform: scale(1.01);
+        }
+
+        .info-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            padding: 12px 18px;
+            background: var(--info-bar-bg);
+            border-radius: 60px;
+            gap: 16px;
+            transition: background 0.2s;
+        }
+
+        .progress-wrapper {
+            flex: 1;
+            min-width: 180px;
+            position: relative;
+        }
+
+        .progress-track {
+            background: var(--progress-track);
+            border-radius: 48px;
+            height: 44px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.02);
+            backdrop-filter: blur(1px);
+            border: 1px solid rgba(203, 213, 225, 0.5);
+            position: relative;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(105deg, #3b82f6 0%, #6366f1 100%);
+            border-radius: 48px;
+            transition: width 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.05);
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .progress-fill[data-width-small="true"] .progress-percent {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .progress-percent {
+            font-family: Optima;
+            font-weight: 700;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            margin-right: 10px;
+        }
+
+        .stats-badge {
+            font-family: system-ui, 'Segoe UI', sans-serif;
+            background: var(--badge-bg);
+            color: #f0f9ff;
+            padding: 8px 26px;
+            border-radius: 56px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(165, 180, 252, 0.5);
+            cursor: default;
+            user-select: none;
+            transition: transform 0.2s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.25s ease, background 0.2s;
+            position: relative;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .stats-badge:hover {
+            transform: translateY(-3px) scale(1.02);
+            background: var(--badge-hover-bg);
+            box-shadow: 0 14px 26px -6px rgba(46, 16, 101, 0.5);
+            border-color: rgba(196, 181, 253, 0.8);
+        }
+
+        .stats-badge:active {
+            transform: scale(0.96);
+            transition: transform 0.08s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .stats-badge .badge-ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,245,0.8) 0%, rgba(255,220,150,0.4) 80%);
+            transform: translate(-50%, -50%) scale(0);
+            pointer-events: none;
+            animation: badgeRippleFlash 0.55s ease-out forwards;
+        }
+
+        @keyframes badgeRippleFlash {
+            0% { width: 0px; height: 0px; opacity: 0.8; transform: translate(-50%, -50%) scale(0); }
+            100% { width: 320px; height: 320px; opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 0.7rem;
+            color: var(--footer-color);
+            transition: color 0.2s;
+        }
+
+        /* 使用指南高级排版架构 */
+        .guide-container {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 12px 4px;
+            color: var(--preview-text);
+        }
+        
+        .guide-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        
+        .guide-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--preview-text);
+            margin-bottom: 4px;
+            text-align: center;
+        }
+        
+        .guide-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .guide-card {
+            background: var(--info-bar-bg);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.01);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s;
+            text-align: left;
+        }
+        
+
+        
+        .card-icon-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .icon-p { color: var(--guide-accent-primary); }
+        .icon-s { color: var(--guide-accent-secondary); }
+        .icon-su { color: var(--guide-accent-success); }
+        .icon-w { color: var(--guide-accent-warning); }
+        
+        .card-desc {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        
+        /* 快捷键模块 */
+        .shortcuts-box {
+            margin-bottom: 24px;
+            text-align: left;
+            width: 100%;
+        }
+        
+        .shortcuts-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 严谨对称的 3列 布局系统 - 修复 minmax 防止窄屏溢出凸出 */
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            width: 100%;
+        }
+        
+        /* 纯静态高级毛玻璃卡片 - 去除固定高度，改用弹性填充和更加合理的内边距 */
+        .hanki-fluid-card {
+            position: relative;
+            background: var(--guide-card-bg);
+            border-radius: 16px;
+            min-height: 105px;
+            padding: 15px 11px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s;
+            overflow: hidden;
+            width: 100%;
+        }
+
+
+        
+        .shortcut-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        
+        /* 拟真立体按键 KBD - 适当减小微调内边距和字体大小，防挤压溢出 */
+        .shortcut-kbd {
+            background: var(--kbd-bg);
+            color: var(--kbd-text);
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            box-shadow: var(--kbd-shadow);
+            font-family: inherit;
+            white-space: nowrap;
+            letter-spacing: -0.3px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.2s;
+        }
+
+        .shortcut-kbd-dot {
+            font-size: 1rem;
+            color: var(--kbd-text);
+            opacity: 0.6;
+            font-weight: bold;
+            user-select: none;
+        }
+        
+        .shortcut-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            opacity: 0.9;
+            text-align: center;
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* 彩蛋提示说明模块 */
+        .easter-eggs-box {
+            background: var(--info-bar-bg);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.01);
+            text-align: left;
+        }
+        
+        .eggs-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .eggs-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .eggs-list li {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            opacity: 0.9;
+            padding-left: 14px;
+            position: relative;
+        }
+        
+        .eggs-list li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--guide-accent-primary);
+            font-weight: bold;
+        }
+
+        /* 响应式媒体查询：当空间太窄时，完美收缩为 1列 (6*1 堆叠) */
+        @media (max-width: 800px) {
+            .preview-card { font-size: 1rem; padding: 18px; }
+            .smart-btn { padding: 7px 16px; font-size: 0.8rem; min-width: 120px; }
+            .smart-btn svg { width: 16px; height: 16px; }
+            .stats-badge { padding: 6px 18px; font-size: 0.75rem; gap: 6px; }
+            .progress-track { height: 38px; }
+            .info-bar { padding: 10px 14px; gap: 12px; }
+            .guide-title { font-size: 1.8rem; }
+            .card-icon-title { font-size: 1rem; }
+            .card-desc { font-size: 0.88rem; }
+            /* 空间过窄时强制收缩为 单列 纵向平铺（6*1）*/
+            .shortcuts-grid { grid-template-columns: 1fr; gap: 10px; }
+            .hanki-fluid-card { min-height: 64px; height: auto; padding: 10px 14px; flex-direction: row; justify-content: space-between; }
+            .shortcut-item { width: auto; flex-wrap: nowrap; }
+            .shortcut-label { text-align: right; width: auto; }
+            .shortcut-kbd { padding: 5px 9px; font-size: 0.9rem; }
+        }
+
+        /* 新增针对双栏极度挤压下的额外适配响应点，防止 800px-1024px 之间提前溢出 */
+        @media (max-width: 1100px) and (min-width: 801px) {
+            .shortcut-kbd { padding: 4px 6px; font-size: 0.85rem; }
+            .shortcut-label { font-size: 0.8rem; }
+            .hanki-fluid-card { min-height: 95px; }
+        }
+
+        html { overflow-y: scroll; scrollbar-width: none; -ms-overflow-style: none; }
+        html::-webkit-scrollbar { display: none; }
+        body { scrollbar-width: none; -ms-overflow-style: none; }
+        .app-container, .split-layout, .editor-panel, .preview-panel, .editor-area, .preview-area {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .app-container::-webkit-scrollbar, .split-layout::-webkit-scrollbar,
+        .editor-panel::-webkit-scrollbar, .preview-panel::-webkit-scrollbar,
+        .editor-area::-webkit-scrollbar, .preview-area::-webkit-scrollbar {
+            display: none;
+        }
+        .editor-panel, .preview-panel { will-change: flex, display; }
+        .hanki-title-trigger { cursor: default; display: inline-block; }
+    </style>
+</head>
+<body>
+<div class="app-container" id="appContainer">
+    <div style="text-align: center; margin: 0 0 32px 0; position: relative;">
+        <h1 id="darkModeToggler" style="font-size: 5rem; font-weight: 900; margin: 0; background: linear-gradient(135deg, #111827 0%, #7c3aed 30%, #06b6d4 50%, #7c3aed 70%, #111827 100%); background-size: 200% auto; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 10s ease infinite; letter-spacing: -0.02em; font-family: 'Inter', system-ui, 'Segoe UI', sans-serif; text-shadow: 0 2px 10px rgba(0,0,0,0.05); cursor: default;">HAnki</h1>
+        <div style="width: 120px; height: 3px; background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc); border-radius: 3px; margin: 16px auto 0; animation: expand 1.0s ease-out;"></div>
+        <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 200px; height: 200px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(99,102,241,0) 70%); border-radius: 50%; pointer-events: none; z-index: -1;"></div>
+    </div>
+
+    <style>
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes expand {
+            0% { width: 0; opacity: 0; }
+            100% { width: 120px; opacity: 1; }
+        }
+    </style>
+    
+    <div class="split-layout" id="splitLayout">
+        <div class="editor-panel" id="editorPanel">
+            <div class="panel-header">
+                <h2 id="panelTitle">原文编辑区</h2>
+                <p id="panelSub">[需要遮盖的词] 将显示为黑色方块</p>
+            </div>
+            <div class="editor-area">
+                <textarea id="markupInput" class="markup-textarea" spellcheck="false"></textarea>
+                <div class="button-group">
+                    <button id="resetAllRevealBtn" class="smart-btn btn-secondary-smart">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        <span id="revealBtnText">显示原文</span>
+                    </button>
+                    <button id="recoverAllRedactBtn" class="smart-btn btn-secondary-smart">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                        </svg>
+                        <span id="coverBtnText">重新遮盖</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-panel" id="previewPanel">
+            <div class="panel-header">
+                <h2 id="previewTitle">预览交互区</h2>
+                <p id="previewSub">点击遮盖块切换状态</p>
+            </div>
+            <div class="preview-area">
+                <div id="previewContainer" class="preview-card">
+                    <div style="color: #94a3b8; text-align: center;">✨ 等待解析标记内容...</div>
+                </div>
+                <div class="info-bar">
+                    <div class="progress-wrapper">
+                        <div class="progress-track">
+                            <div id="progressFill" class="progress-fill">
+                                <span id="progressPercentLabel" class="progress-percent">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stats-badge" id="statsInfo">
+                        <span id="badgePrefix"> 正在遮盖 </span>
+                        <span id="statsCountDisplay">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        <span id="copyrightMsg">版权所有 · HAnki 由 SHERLOCK HANNE 原创开发 © 202606171603</span>
+    </div>
+</div>
+
+<script>
+    // ===================== 双语彩蛋 & 核心功能 ======================
+    const appContainerDiv = document.getElementById('appContainer');
+    const statsBadgeElem = document.getElementById('statsInfo');
+    let isFullscreenPreview = false;
+    let isEnglish = false;
+
+    // 多语言文本映射
+    const langMap = {
+        zh: {
+            panelTitle: "原文编辑区",
+            panelSub: "[需要遮盖的词] 将显示为黑色方块",
+            revealBtn: "显示原文",
+            coverBtn: "重新遮盖",
+            previewTitle: "预览交互区",
+            previewSub: "点击遮盖块切换状态",
+            badgePrefix: "正在遮盖",
+            copyrightMsg: "版权所有 · HAnki 由 SHERLOCK HANNE 原创开发 © 202606171603",
+            
+            gTitle: "HAnki 使用指南",
+            c1Title: "1. 编辑原文",
+            c1Desc: "在左侧<strong>「原文编辑区」</strong>输入文字，使用<strong> [需要遮盖的词]</strong> 方括号语法来标记要遮盖的内容。",
+            c2Title: "2. 交互遮盖",
+            c2Desc: "右侧<strong>「预览交互区」</strong>会实时显示遮盖块。<br><strong>点击遮盖块</strong>即可切换遮盖状态。底部进度条和徽章会动态显示遮盖数量与回忆进度。",
+            sTitle: "3. 快捷键",
+            s1: "全部显示",
+            s2: "全部遮盖",
+            s3: "面板全屏",
+            s4: "暗黑模式",
+            s5: "网页全屏",
+            s6: "切换语言",
+            eTitle: "4. 彩蛋",
+            e1: "点击顶部 <strong>“HAnki”</strong> 标题可切换暗黑模式。",
+            e2: "点击底部 <strong>“正在遮盖”</strong> 徽章可切换右侧面板全屏。",
+            e3: "使用 <strong>“Ctrl+滚轮”</strong> 缩放字体，<strong>“双击Ctrl”</strong> 恢复默认。",
+        },
+        en: {
+            panelTitle: "EDITING AREA",
+            panelSub: "[Word to redact] appears as black square.",
+            revealBtn: "ORIGINAL",
+            coverBtn: "REDACT",
+            previewTitle: "PREVIEW AREA",
+            previewSub: "Click the redacted block to toggle state.",
+            badgePrefix: "REDACTING",
+            copyrightMsg: "Copyright · HAnki is originally developed by SHERLOCK HANNE © 202606171603",
+            
+            gTitle: "HAnki User Guide",
+            c1Title: "1. Edit Original Text",
+            c1Desc: "Enter text in the left <strong>「EDITING AREA」</strong> and use <strong>[word to redact]</strong> syntax to mark content to be redacted.",
+            c2Title: "2. Interactive Redaction",
+            c2Desc: "The right <strong>「PREVIEW AREA」</strong> displays redaction blocks in real time. <strong>Click a redaction block</strong> to toggle its redacted state.<br>The progress bar and badge at the bottom dynamically show the redaction count and recall progress.",
+            sTitle: "3. Shortcuts",
+            s1: "Reveal All",
+            s2: "Redact All",
+            s3: "Panel Fullscreen",
+            s4: "Dark Mode",
+            s5: "Browser Fullscreen",
+            s6: "Toggle Language",
+            eTitle: "4. Surprises",
+            e1: "Click the <strong>\"HAnki\"</strong> title at the top to toggle Dark Mode.",
+            e2: "Click the bottom <strong>\"Redacting\"</strong> badge to toggle fullscreen mode.",
+            e3: "Use <strong>\"Ctrl+Scroll\"</strong> to scale font,<strong>\"double-click Ctrl\"</strong>to reset.",
+        }
+    };
+
+    function applyLanguage(englishMode) {
+        const texts = englishMode ? langMap.en : langMap.zh;
+        document.getElementById('panelTitle').innerText = texts.panelTitle;
+        document.getElementById('panelSub').innerText = texts.panelSub;
+        document.getElementById('revealBtnText').innerText = texts.revealBtn;
+        document.getElementById('coverBtnText').innerText = texts.coverBtn;
+        document.getElementById('previewTitle').innerText = texts.previewTitle;
+        document.getElementById('previewSub').innerText = texts.previewSub;
+        document.getElementById('badgePrefix').innerText = texts.badgePrefix;
+        document.getElementById('copyrightMsg').innerText = texts.copyrightMsg;
+        
+        const rawMarkup = markupInput.value;
+        if (!rawMarkup.trim()) {
+            renderGuide();
+        } else {
+            renderPreview();
+        }
+    }
+
+    // 渲染纯净、静态且高对称性的 V2.0 磨砂指南界面
+    function renderGuide() {
+        const texts = isEnglish ? langMap.en : langMap.zh;
+        previewContainer.innerHTML = `
+            <div class="guide-container">
+                <div class="guide-header">
+                    <div class="guide-title">${texts.gTitle}</div>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 10px; font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; color: var(--guide-accent-primary);">
+                        ${texts.c1Title}
+                    </div>
+
+                    <div style="font-size: 0.95rem; line-height: 1.6; opacity: 0.9; margin-bottom: 20px;">
+                        ${texts.c1Desc}
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 10px; font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; color: var(--guide-accent-secondary);">
+                        ${texts.c2Title}
+                    </div>
+
+                    <div style="font-size: 0.95rem; line-height: 1.6; opacity: 0.9; margin-bottom: 20px;">
+                        ${texts.c2Desc}
+                    </div>
+                </div>
+
+                <div class="shortcuts-box">
+                    <div class="shortcuts-title icon-su">${texts.sTitle}</div>
+                    <div class="shortcuts-grid">
+                        <div class="hanki-fluid-card">
+                            <div class="shortcut-item">
+                                <kbd class="shortcut-kbd">Alt</kbd>
+                                <span class="shortcut-kbd-dot">•</span>
+                                <kbd class="shortcut-kbd">S</kbd>
+                            </div>
+                            <span class="shortcut-label">${texts.s1}</span>
+                        </div>
+                        <div class="hanki-fluid-card">
+                            <div class="shortcut-item">
+                                <kbd class="shortcut-kbd">Alt</kbd>
+                                <span class="shortcut-kbd-dot">•</span>
+                                <kbd class="shortcut-kbd">R</kbd>
+                            </div>
+                            <span class="shortcut-label">${texts.s2}</span>
+                        </div>
+                        <div class="hanki-fluid-card">
+                            <div class="shortcut-item">
+                                <kbd class="shortcut-kbd">Alt</kbd>
+                                <span class="shortcut-kbd-dot">•</span>
+                                <kbd class="shortcut-kbd">P</kbd>
+                            </div>
+                            <span class="shortcut-label">${texts.s3}</span>
+                        </div>
+                        <div class="hanki-fluid-card">
+                            <div class="shortcut-item">
+                                <kbd class="shortcut-kbd">Alt</kbd>
+                                <span class="shortcut-kbd-dot">•</span>
+                                <kbd class="shortcut-kbd">D</kbd>
+                            </div>
+                            <span class="shortcut-label">${texts.s4}</span>
+                        </div>
+                        <div class="hanki-fluid-card">
+                            <div class="shortcut-item">
+                                <kbd class="shortcut-kbd">Alt</kbd>
+                                <span class="shortcut-kbd-dot">•</span>
+                                <kbd class="shortcut-kbd">B</kbd>
+                            </div>
+                            <span class="shortcut-label">${texts.s5}</span>
+                        </div>
+                        <div class="hanki-fluid-card">
+                            <div class="shortcut-item">
+                                <kbd class="shortcut-kbd">Alt</kbd>
+                                <span class="shortcut-kbd-dot">•</span>
+                                <kbd class="shortcut-kbd">L</kbd>
+                            </div>
+                            <span class="shortcut-label">${texts.s6}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; color: var(--guide-accent-warning);">
+                        ${texts.eTitle}
+                    </div>
+                    <ul style="list-style: none; margin: 0; padding: 0;">
+                        <li style="font-size: 0.95rem; line-height: 1.5; opacity: 0.9; padding-left: 14px; position: relative; margin-bottom: 6px;">
+                            <span style="position: absolute; left: 0; color: var(--guide-accent-primary); font-weight: bold;">•</span>
+                            ${texts.e1}
+                        </li>
+                        <li style="font-size: 0.95rem; line-height: 1.5; opacity: 0.9; padding-left: 14px; position: relative; margin-bottom: 6px;">
+                            <span style="position: absolute; left: 0; color: var(--guide-accent-primary); font-weight: bold;">•</span>
+                            ${texts.e2}
+                        </li>
+                        <li style="font-size: 0.95rem; line-height: 1.5; opacity: 0.9; padding-left: 14px; position: relative;">
+                            <span style="position: absolute; left: 0; color: var(--guide-accent-primary); font-weight: bold;">•</span>
+                            ${texts.e3}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    }
+
+    function toggleLanguage() {
+        isEnglish = !isEnglish;
+        if (isEnglish) {
+            document.body.classList.add('english-mode');
+        } else {
+            document.body.classList.remove('english-mode');
+        }
+        applyLanguage(isEnglish);
+        updateStatsSilent();
+    }
+
+    function toggleFullscreenPreviewMode() {
+        if (!isFullscreenPreview) {
+            appContainerDiv.classList.add('fullscreen-mode-active');
+            isFullscreenPreview = true;
+            const previewPanel = document.getElementById('previewPanel');
+            if (previewPanel) {
+                previewPanel.style.transition = 'box-shadow 0.2s';
+                previewPanel.style.boxShadow = '0 20px 35px rgba(0, 0, 0, 0.12)';
+                setTimeout(() => { if(previewPanel) previewPanel.style.boxShadow = ''; }, 300);
+            }
+        } else {
+            appContainerDiv.classList.remove('fullscreen-mode-active');
+            isFullscreenPreview = false;
+            const previewPanel = document.getElementById('previewPanel');
+            if (previewPanel) previewPanel.style.boxShadow = '';
+        }
+        setTimeout(() => { updateStatsSilent(); }, 50);
+    }
+
+    function toggleBrowserFullscreen() {
+        const elem = document.documentElement;
+        if (!document.fullscreenElement) {
+            elem.requestFullscreen().catch(err => {});
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        updateStatsSilent();
+    }
+
+    // ========== 原生核心控制逻辑 ==========
+    const markupInput = document.getElementById('markupInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const resetAllRevealBtn = document.getElementById('resetAllRevealBtn');
+    const recoverAllRedactBtn = document.getElementById('recoverAllRedactBtn');
+    const progressFillEl = document.getElementById('progressFill');
+    const progressPercentLabel = document.getElementById('progressPercentLabel');
+    const statsCountSpan = document.getElementById('statsCountDisplay');
+
+    // 精准的 HTML 基础转义系统
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // 核心重构：支持换行符与多空格不被浏览器折叠压缩，外层加入段落包裹，并保证指南卡片不受污染
+    function parseMarkedTextToHtml(markedText) {
+        if (!markedText) return '';
+        
+        let result = '';
+        let i = 0;
+        const len = markedText.length;
+        
+        while (i < len) {
+            if (markedText[i] === '[') {
+                let j = i + 1;
+                let found = false;
+                while (j < len) {
+                    if (markedText[j] === ']') {
+                        found = true;
+                        break;
+                    }
+                    j++;
+                }
+                if (found) {
+                    const innerRaw = markedText.substring(i + 1, j);
+                    // 遮盖块内部文本正常转义
+                    const escapedInner = escapeHtml(innerRaw);
+                    result += `<span class="redact-token" data-original="${escapedInner}">${escapedInner}</span>`;
+                    i = j + 1;
+                } else {
+                    result += escapeHtml(markedText[i]);
+                    i++;
+                }
+            } else {
+                let start = i;
+                while (i < len && markedText[i] !== '[') i++;
+                const plainChunk = markedText.substring(start, i);
+                result += escapeHtml(plainChunk);
+            }
+        }
+        
+        // 用包含 pre-wrap 的段落标签包裹，完美保留原生空格、连读空格与换行，且隔离外界样式
+        return `<p class="hanki-para">${result}</p>`;
+    }
+
+    function updateProgressBarVisual(percent) {
+        if (!progressFillEl) return;
+        progressFillEl.style.width = percent + '%';
+        if (percent === 0 || (percent > 0 && percent <= 8)) {
+            progressFillEl.setAttribute('data-width-small', 'true');
+            progressFillEl.style.paddingRight = '0';
+        } else {
+            progressFillEl.setAttribute('data-width-small', 'false');
+            progressFillEl.style.paddingRight = '';
+        }
+        if (progressPercentLabel) {
+            const roundedPercent = Math.round(percent);
+            progressPercentLabel.innerText = roundedPercent + '%';
+            if (percent === 0 || (percent > 0 && percent <= 8)) {
+                progressPercentLabel.style.opacity = '0';
+                progressPercentLabel.style.visibility = 'hidden';
+            } else {
+                progressPercentLabel.style.opacity = '1';
+                progressPercentLabel.style.visibility = 'visible';
+            }
+        }
+    }
+
+    function updateStatsWithAnimation() {
+        const allRedactSpans = document.querySelectorAll('#previewContainer .redact-token');
+        const total = allRedactSpans.length;
+        const revealedCount = Array.from(allRedactSpans).filter(span => span.classList.contains('revealed')).length;
+        const coveredCount = total - revealedCount;
+        if (statsCountSpan) statsCountSpan.innerText = coveredCount;
+        const percent = total === 0 ? 0 : (revealedCount / total) * 100;
+        updateProgressBarVisual(percent);
+        if (statsBadgeElem) {
+            statsBadgeElem.style.transform = 'scale(1.05)';
+            setTimeout(() => { if(statsBadgeElem) statsBadgeElem.style.transform = ''; }, 160);
+        }
+    }
+    
+    function updateStatsSilent() {
+        const allRedactSpans = document.querySelectorAll('#previewContainer .redact-token');
+        const total = allRedactSpans.length;
+        const revealedCount = Array.from(allRedactSpans).filter(span => span.classList.contains('revealed')).length;
+        const coveredCount = total - revealedCount;
+        if (statsCountSpan) statsCountSpan.innerText = coveredCount;
+        const percent = total === 0 ? 0 : (revealedCount / total) * 100;
+        updateProgressBarVisual(percent);
+    }
+
+    function bindRedactClickEvents() {
+        const redactSpans = document.querySelectorAll('#previewContainer .redact-token');
+        redactSpans.forEach(span => {
+            if (span._clickHandler) span.removeEventListener('click', span._clickHandler);
+            const clickHandler = function(e) {
+                e.stopPropagation();
+                this.style.transform = 'scale(0.96)';
+                setTimeout(() => { if (this) this.style.transform = ''; }, 130);
+                this.classList.toggle('revealed');
+                updateStatsWithAnimation();
+            };
+            span.addEventListener('click', clickHandler);
+            span._clickHandler = clickHandler;
+        });
+    }
+
+    function renderPreview() {
+        const rawMarkup = markupInput.value;
+        if (!rawMarkup.trim()) {
+            renderGuide();
+            if (statsCountSpan) statsCountSpan.innerText = '0';
+            updateProgressBarVisual(0);
+            return;
+        }
+        const htmlContent = parseMarkedTextToHtml(rawMarkup);
+        previewContainer.innerHTML = htmlContent;
+        bindRedactClickEvents();
+        updateStatsSilent();
+    }
+
+    function resetAllToCovered() {
+        const allRedact = document.querySelectorAll('#previewContainer .redact-token');
+        if (allRedact.length === 0) return;
+        allRedact.forEach(span => span.classList.remove('revealed'));
+        previewContainer.style.transform = 'scale(0.99)';
+        setTimeout(() => { previewContainer.style.transform = ''; }, 150);
+        updateStatsWithAnimation();
+    }
+
+    function revealAllOriginal() {
+        const allRedact = document.querySelectorAll('#previewContainer .redact-token');
+        if (allRedact.length === 0) return;
+        allRedact.forEach(span => span.classList.add('revealed'));
+        previewContainer.style.transform = 'scale(0.99)';
+        setTimeout(() => { previewContainer.style.transform = ''; }, 150);
+        updateStatsWithAnimation();
+    }
+
+    function attachSmartRipple(buttonElement) {
+        if (!buttonElement || buttonElement._rippleAttached) return;
+        buttonElement._rippleAttached = true;
+        buttonElement.addEventListener('click', function(e) {
+            const rect = buttonElement.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple-node';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            ripple.style.position = 'absolute';
+            ripple.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+            ripple.style.borderRadius = '50%';
+            ripple.style.pointerEvents = 'none';
+            ripple.style.zIndex = '20';
+            buttonElement.style.position = 'relative';
+            buttonElement.style.overflow = 'hidden';
+            buttonElement.appendChild(ripple);
+            requestAnimationFrame(() => {
+                ripple.style.width = '260px';
+                ripple.style.height = '260px';
+                ripple.style.opacity = '0';
+            });
+            setTimeout(() => ripple.remove(), 600);
+        });
+    }
+
+    function initKeyboardShortcuts() {
+        window.addEventListener('keydown', (e) => {
+            if (!e.altKey) return;
+            const key = e.key.toLowerCase();
+            switch (key) {
+                case 's': e.preventDefault(); revealAllOriginal(); break;
+                case 'r': e.preventDefault(); resetAllToCovered(); break;
+                case 'p': e.preventDefault(); toggleFullscreenPreviewMode(); break;
+                case 'd': e.preventDefault(); toggleDarkMode(); break;
+                case 'b': e.preventDefault(); toggleBrowserFullscreen(); break;
+                case 'l': e.preventDefault(); toggleLanguage(); break;
+                default: break;
+            }
+        });
+    }
+
+    function attachBadgeClickEffects() {
+        if (!statsBadgeElem) return;
+        statsBadgeElem.addEventListener('click', function(e) {
+            const rect = statsBadgeElem.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const badgeRipple = document.createElement('span');
+            badgeRipple.className = 'badge-ripple';
+            badgeRipple.style.left = x + 'px';
+            badgeRipple.style.top = y + 'px';
+            badgeRipple.style.position = 'absolute';
+            badgeRipple.style.pointerEvents = 'none';
+            badgeRipple.style.zIndex = '15';
+            statsBadgeElem.style.position = 'relative';
+            statsBadgeElem.appendChild(badgeRipple);
+            setTimeout(() => badgeRipple.remove(), 550);
+        });
+    }
+
+    // ===================== 字体大小控制 ======================
+    // 存储当前字体大小（相对比例）
+    let editorFontSize = 1.0;   // 1.0 = 100%
+    let previewFontSize = 1.0;
+
+    // 字体大小范围限制
+    const MIN_FONT_SCALE = 0.6;   // 60%
+    const MAX_FONT_SCALE = 1.8;   // 180%
+    const STEP = 0.05;            // 每次调整5%
+
+    function handleFontSizeWheel(e) {
+        // 检查是否按下了 Ctrl 键
+        if (!e.ctrlKey) return;
+        
+        // 获取目标元素
+        const target = e.target;
+        const isEditor = target.closest('.editor-panel') !== null;
+        const isPreview = target.closest('.preview-panel') !== null;
+        
+        // 如果既不在编辑区也不在预览区，忽略
+        if (!isEditor && !isPreview) return;
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // 判断缩放方向
+        const delta = e.deltaY > 0 ? -STEP : STEP;
+        
+        if (isEditor) {
+            editorFontSize = Math.min(MAX_FONT_SCALE, Math.max(MIN_FONT_SCALE, editorFontSize + delta));
+            const textarea = document.getElementById('markupInput');
+            if (textarea) {
+                textarea.style.fontSize = (editorFontSize * 1.0) + 'rem';
+            }
+        }
+        
+        if (isPreview) {
+            previewFontSize = Math.min(MAX_FONT_SCALE, Math.max(MIN_FONT_SCALE, previewFontSize + delta));
+            const previewCard = document.getElementById('previewContainer');
+            if (previewCard) {
+                previewCard.style.fontSize = (previewFontSize * 1.15) + 'rem';
+            }
+        }
+    }
+
+    // 监听鼠标滚轮事件（使用 passive: false 允许 preventDefault）
+    document.addEventListener('wheel', handleFontSizeWheel, { passive: false });
+
+    // ===================== 重置字体大小（双击Ctrl+滚轮重置） ======================
+    let lastCtrlKeyTime = 0;
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Control') {
+            const now = Date.now();
+            if (now - lastCtrlKeyTime < 300) {
+                // 双击Ctrl重置字体
+                resetFontSizes();
+            }
+            lastCtrlKeyTime = now;
+        }
+    });
+
+    function resetFontSizes() {
+        editorFontSize = 1.0;
+        previewFontSize = 1.0;
+        
+        const textarea = document.getElementById('markupInput');
+        if (textarea) textarea.style.fontSize = '1rem';
+        
+        const previewCard = document.getElementById('previewContainer');
+        if (previewCard) previewCard.style.fontSize = '1.15rem';
+        
+        // 显示一个短暂的提示（可选）
+        showResetNotification();
+    }
+
+    // 简单的重置提示
+    function showResetNotification() {
+        const existing = document.querySelector('.font-reset-toast');
+        if (existing) existing.remove();
+        
+        const toast = document.createElement('div');
+        toast.className = 'font-reset-toast';
+        toast.textContent = '🔤 字体已重置';
+        Object.assign(toast.style, {
+            position: 'fixed',
+            bottom: '80px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.8)',
+            color: 'white',
+            padding: '10px 24px',
+            borderRadius: '30px',
+            fontSize: '0.9rem',
+            fontWeight: '600',
+            zIndex: '9999',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+            transition: 'opacity 0.3s ease',
+            opacity: '0',
+            pointerEvents: 'none'
+        });
+        document.body.appendChild(toast);
+        
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+        });
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 350);
+        }, 1200);
+    }
+
+    function init() {
+        const DEFAULT_MARKUP = `我亲爱的华生：\n\n承蒙[莫里亚蒂]先生的好意，我写下这几行书信，他正等着对我们之间存在的问题进行[最后的]讨论。他已向我概述了他摆脱英国警察并查明我们行踪的方法。这更加肯定地证实了我对他的[才能]所作的极高评价。\n\nI am pleased to think that I shall be able to [free society] from any further effects of his presence, though I fear that it is at a cost which will give pain to my friends, and especially, [my dear Watson], to you. I have already explained to you, however, that my career had in any case reached its [crisis], and that no possible conclusion to it could be more [congenial] to me than this. Pray give my greetings to Mrs. Watson, and believe me to be, my dear fellow,\n\nVery sincerely yours,\n\nSHERLOCK HOLMES.`;
+        markupInput.value = DEFAULT_MARKUP;
+        renderPreview();
+        resetAllRevealBtn.addEventListener('click', () => revealAllOriginal());
+        recoverAllRedactBtn.addEventListener('click', () => resetAllToCovered());
+        markupInput.addEventListener('input', () => {
+            if (window.debounceTimer) clearTimeout(window.debounceTimer);
+            window.debounceTimer = setTimeout(() => renderPreview(), 380);
+        });
+        markupInput.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); renderPreview(); } });
+        attachSmartRipple(resetAllRevealBtn);
+        attachSmartRipple(recoverAllRedactBtn);
+        if (statsBadgeElem) {
+            statsBadgeElem.addEventListener('click', (e) => { e.stopPropagation(); toggleFullscreenPreviewMode(); });
+            attachBadgeClickEffects();
+        }
+        const titleH1 = document.getElementById('darkModeToggler');
+        if (titleH1) titleH1.addEventListener('click', () => toggleDarkMode());
+        initKeyboardShortcuts();
+        applyLanguage(false);
+    }
+    init();
+</script>
+</body>
+</html>
