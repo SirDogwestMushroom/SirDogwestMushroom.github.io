@@ -1350,47 +1350,6 @@
         
         const previewCard = document.getElementById('previewContainer');
         if (previewCard) previewCard.style.fontSize = '1.15rem';
-        
-        // 显示一个短暂的提示（可选）
-        showResetNotification();
-    }
-
-    // 简单的重置提示
-    function showResetNotification() {
-        const existing = document.querySelector('.font-reset-toast');
-        if (existing) existing.remove();
-        
-        const toast = document.createElement('div');
-        toast.className = 'font-reset-toast';
-        toast.textContent = '🔤 字体已重置';
-        Object.assign(toast.style, {
-            position: 'fixed',
-            bottom: '80px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(0,0,0,0.8)',
-            color: 'white',
-            padding: '10px 24px',
-            borderRadius: '30px',
-            fontSize: '0.9rem',
-            fontWeight: '600',
-            zIndex: '9999',
-            backdropFilter: 'blur(8px)',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-            transition: 'opacity 0.3s ease',
-            opacity: '0',
-            pointerEvents: 'none'
-        });
-        document.body.appendChild(toast);
-        
-        requestAnimationFrame(() => {
-            toast.style.opacity = '1';
-        });
-        
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 350);
-        }, 1200);
     }
 
     function init() {
